@@ -7,31 +7,16 @@ const bodyParser = require('body-parser');
 
 router.use(bodyParser.json());
 
-router.post('/register', (req, res) => {
-  const newUser = new User({
-    email: req.body.email,
-    username: req.body.username,
-    password: req.body.password
-  });
-  newUser.save()
-  .then(response => {
-    res.send(response);
-  })
-  .catch(error => {
-    res.send(error);
-  })
-});
-
 router.post('/create-course', (req, res) => {
   const newCourse = new Course({
     name: req.body.name
   })
   newCourse.save()
   .then(response => {
-    res.send(response);
+    res.json(response);
   })
   .catch(error => {
-    res.send(error);
+    res.json(error);
   })
 });
 router.post('/edit-course/:courseid', (req, res) => {
@@ -40,17 +25,17 @@ router.post('/edit-course/:courseid', (req, res) => {
 
 router.post('/create-set', (req, res) => {
   const newSet = new CardSet({
-    author: req.body.author, // change to use req.user.username!!
+    author: req.user.username, // change to use req.user.username!!
     title: req.body.title,
     subject: req.body.subject,
     cards: req.body.cards //array of card objects each w a term and definition
   });
   newSet.save()
   .then(response => {
-    res.send(response);
+    res.json({success: response});
   })
   .catch(error => {
-    res.send(error);
+    res.json({error: error});
   })
 });
 
@@ -60,30 +45,66 @@ router.post('/edit-set/:setid', (req, res) => {
 
 router.get('/subjects', (req, res) => {
   //get all subjects the currently logged in user has made
+  // returns an array of subject names
+  CardSet.find( { author: req.user.username }, (err, sets) => {
+    if (!err) {
+      let subjectsFromAllSets = sets.map(set => {
+        return set.subject
+      })
+      let subjects = subjectsFromAllSets.filter((item, pos, self) => {
+        return self.indexOf(item) == pos;
+      })
+      res.json({subjects: subjects})
+    } else {
+      console.log(err);
+    }
+  })
 
+  //
+  // a.filter( x => {
+  //     if (!c.hasOwnProperty(x.a)){
+  //         c[x.a] = true;
+  //         return true;
+  //     }
+  //     return false;
+  // });
 })
 
 router.get('/sets/:subject', (req, res) => {
-  //get all sets under the specified class
+  //get all sets under the specified subject
   CardSet.find( { subject: req.params.subject }, (err, sets) => {
     if (!err) {
-      res.send(sets)
+      let cardSetTitles = sets.map(set => {
+        return set.title
+      })
+      res.json({titles: cardSetTitles })
+    } else {
+      console.log(err)
+    }
+  })
+
+  CardSet.find( { subject: req.params.subject }, (err, sets) => {
+    if (!err) {
+      sets.map(set => {
+
+      })
     } else {
       console.log(err);
     }
   })
 })
 
-router.get('/study/:id', (req, res) =>{
-  cardSet.findById(req.params.id, (err, cardSet) => {
-    res.send(cardSet)
+router.get('/study/:title', (req, res) =>{
+  CardSet.find( { title: req.params.title }, (err, sets) => {
+    if (!err) {
+      let cards = sets.map(set => {
+        return set.cards
+      })
+      res.json({cards: cards});
+    } else {
+      console.log(err)
+    }
   })
 });
 
 module.exports = router;
-
-//im wondering:
-//is it better to have subjects and card sets
-//as a part of the user collection in mongoDB
-
-//git hub so we can collab
